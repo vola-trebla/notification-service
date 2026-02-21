@@ -28,19 +28,19 @@ Built as a system design playground for scalability, reliability and failure han
 ## 🧱 Architecture
 
 Producer (curl / service)
-↓
+      ↓
 Ingestion API (Express)
-↓
+      ↓
 PostgreSQL (Events table)
-↓
+      ↓
 Fan-out
-↓
-Queue (DB-backed job table for MVP)
-↓
+      ↓
+Queue (DB-backed job table)
+      ↓
 Workers
-↓
+      ↓
 HTTP/Webhook Target
-↓
+      ↓
 Delivery Log + DLQ
 
 ---

@@ -138,6 +138,3 @@ This project explores:
 * Retry and backoff strategies
 * Delivery guarantees
 * Horizontal scalability patterns
-
-Designed as preparation for system design interviews and production-grade backend engineering.
-

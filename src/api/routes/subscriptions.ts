@@ -23,8 +23,9 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 router.get('/:id', async (req: Request, res: Response) => {
+    const id = String(req.params.id);
     const sub = await prisma.subscription.findUnique({
-        where: { id: req.params.id },
+        where: { id },
     });
     if (!sub) {
         res.status(404).json({ error: 'Subscription not found' });
@@ -56,8 +57,9 @@ router.patch('/:id', async (req: Request, res: Response) => {
         return;
     }
 
+    const id = String(req.params.id);
     const existing = await prisma.subscription.findUnique({
-        where: { id: req.params.id },
+        where: { id },
     });
     if (!existing) {
         res.status(404).json({ error: 'Subscription not found' });
@@ -65,22 +67,23 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
 
     const sub = await prisma.subscription.update({
-        where: { id: req.params.id },
+        where: { id },
         data: result.data,
     });
     res.json(sub);
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {
+    const id = String(req.params.id);
     const existing = await prisma.subscription.findUnique({
-        where: { id: req.params.id },
+        where: { id },
     });
     if (!existing) {
         res.status(404).json({ error: 'Subscription not found' });
         return;
     }
     await prisma.subscription.delete({
-        where: { id: req.params.id },
+        where: { id },
     });
     res.status(204).send();
 });

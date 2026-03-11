@@ -25,8 +25,9 @@ router.get('/dlq', async (_req: Request, res: Response) => {
 });
 
 router.get('/:id', async (req: Request, res: Response) => {
+    const id = String(req.params.id);
     const delivery = await prisma.delivery.findUnique({
-        where: { id: req.params.id },
+        where: { id },
         include: { event: true, subscription: true, logs: true },
     });
     if (!delivery) {

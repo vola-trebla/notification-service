@@ -37,6 +37,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Setup env
+        run: echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/notification_service" >> .env
+
       - run: npx prisma generate
 
       - run: npx prisma validate

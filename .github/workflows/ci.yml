@@ -24,6 +24,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notification_service
+
     steps:
       - uses: actions/checkout@v4
 
@@ -41,14 +44,9 @@ jobs:
       - run: npm run typecheck
 
       - run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notification_service
 
       - name: Start server
         run: npm run dev &
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notification_service
-          PORT: 3000
 
       - name: Wait for server
         run: |

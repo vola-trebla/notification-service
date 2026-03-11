@@ -1,6 +1,5 @@
 import { prisma } from '../db/prisma';
-
-const DEFAULT_MAX_ATTEMPTS = 5;
+import { DEFAULT_MAX_ATTEMPTS } from '../config';
 
 /**
  * Fan-out: create Delivery jobs for all subscriptions that match the event type.

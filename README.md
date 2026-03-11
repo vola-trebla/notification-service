@@ -137,6 +137,19 @@ Env vars: `WORKER_POLL_MS`, `BACKOFF_BASE_MS`, `DELIVERY_MAX_ATTEMPTS` (see `.en
 
 ---
 
+## 🤖 CI / GitHub Actions
+
+On push and PR to `main`:
+
+* `npm ci`, `prisma generate`, `prisma validate`
+* `npm run typecheck` (TypeScript)
+* `prisma migrate deploy` against PostgreSQL service
+* Smoke test: start server, hit `/health` and `/subscriptions`
+
+[![CI](https://github.com/vola-trebla/notification-service/actions/workflows/ci.yml/badge.svg)](https://github.com/vola-trebla/notification-service/actions/workflows/ci.yml)
+
+---
+
 ## ⚖️ Trade-offs
 
 ### DB-backed Queue (MVP)

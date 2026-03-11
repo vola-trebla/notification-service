@@ -2,10 +2,10 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma';
 import { fanOut } from '../../services/fanout';
+import { IDEMPOTENCY_TTL_MS } from '../../config';
+import { parseBody } from '../utils';
 
 const router = Router();
-
-const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const EventSchema = z.object({
     type: z.string().min(1),
@@ -13,12 +13,8 @@ const EventSchema = z.object({
 });
 
 router.post('/', async (req: Request, res: Response) => {
-    const result = EventSchema.safeParse(req.body);
-
-    if (!result.success) {
-        res.status(400).json({ error: result.error.issues });
-        return;
-    }
+    const data = parseBody(res, EventSchema.safeParse(req.body));
+    if (!data) return;
 
     const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
 
@@ -34,30 +30,22 @@ router.post('/', async (req: Request, res: Response) => {
 
     const event = await prisma.event.create({
         data: {
-            type: result.data.type,
-            payload: result.data.payload as object,
+            type: data.type,
+            payload: data.payload as object,
         },
     });
 
     const deliveryCount = await fanOut(event.id, event.type);
 
     const response = { message: 'Event saved', event, deliveryCount };
-
     if (idempotencyKey) {
+        const data = { responseBody: response as object, expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_MS) };
         await prisma.idempotencyKey.upsert({
             where: { key: idempotencyKey },
-            create: {
-                key: idempotencyKey,
-                responseBody: response as object,
-                expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_MS),
-            },
-            update: {
-                responseBody: response as object,
-                expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_MS),
-            },
+            create: { key: idempotencyKey, ...data },
+            update: data,
         });
     }
-
     res.status(201).json(response);
 });
 

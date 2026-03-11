@@ -1,12 +1,9 @@
 import 'dotenv/config';
 import { prisma } from '../db/prisma';
-
-const POLL_INTERVAL_MS = Number(process.env.WORKER_POLL_MS) || 1000;
-const BASE_BACKOFF_MS = Number(process.env.BACKOFF_BASE_MS) || 1000;
-const MAX_ATTEMPTS = Number(process.env.DELIVERY_MAX_ATTEMPTS) || 5;
+import { WORKER_POLL_MS, BACKOFF_BASE_MS } from '../config';
 
 function backoffMs(attempt: number): number {
-    return BASE_BACKOFF_MS * Math.pow(2, attempt);
+    return BACKOFF_BASE_MS * Math.pow(2, attempt);
 }
 
 async function deliverOne(delivery: {
@@ -112,14 +109,14 @@ async function runWorker() {
 }
 
 async function main() {
-    console.log('Worker started. Poll interval:', POLL_INTERVAL_MS, 'ms');
+    console.log('Worker started. Poll interval:', WORKER_POLL_MS, 'ms');
     while (true) {
         try {
             await runWorker();
         } catch (e) {
             console.error('Worker loop error:', e);
         }
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+        await new Promise((r) => setTimeout(r, WORKER_POLL_MS));
     }
 }
 

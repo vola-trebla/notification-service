@@ -27,14 +27,16 @@ Built as a system design playground for scalability, reliability and failure han
 
 ## 🧱 Architecture
 
+```mermaid
 graph TD
-A[Producer] --> B[Ingestion API]
-B --> C[(PostgreSQL)]
-C --> D[Fan-out]
-D --> E[DB-backed Queue]
-E --> F[Workers]
-F --> G[HTTP Target]
-G --> H[Log + DLQ]
+    A[Producer] --> B[Ingestion API]
+    B --> C[(PostgreSQL)]
+    C --> D[Fan-out]
+    D --> E[DB-backed Queue]
+    E --> F[Workers]
+    F --> G[HTTP Target]
+    G --> H[Log + DLQ]
+```
 
 ---
 
@@ -59,8 +61,8 @@ Represents something that happened in the system.
 ```bash
 curl -X POST http://localhost:3000/events \
   -H "Content-Type: application/json" \
+  -H "Idempotency-Key: optional-unique-key" \
   -d '{"type": "user.created", "payload": {"userId": "123"}}'
-
 ```
 
 Stored in database with unique ID and timestamp.
@@ -69,9 +71,42 @@ Stored in database with unique ID and timestamp.
 
 Defines which endpoint receives which event types.
 
+```bash
+# Create
+curl -X POST http://localhost:3000/subscriptions \
+  -H "Content-Type: application/json" \
+  -d '{"endpoint": "https://example.com/webhook", "eventTypes": ["user.created", "order.placed"]}'
+
+# List
+curl http://localhost:3000/subscriptions
+
+# Get by id
+curl http://localhost:3000/subscriptions/:id
+
+# Update
+curl -X PATCH http://localhost:3000/subscriptions/:id \
+  -H "Content-Type: application/json" \
+  -d '{"endpoint": "https://new-url.com/webhook", "eventTypes": ["user.deleted"], "active": false}'
+
+# Delete
+curl -X DELETE http://localhost:3000/subscriptions/:id
+```
+
 ### Delivery
 
 Represents a delivery attempt of one event to one subscription.
+
+```bash
+# List deliveries (optional ?status=pending|delivered|failed|dlq)
+curl http://localhost:3000/deliveries
+curl "http://localhost:3000/deliveries?status=dlq"
+
+# Dead letter queue
+curl http://localhost:3000/deliveries/dlq
+
+# Get delivery with logs
+curl http://localhost:3000/deliveries/:id
+```
 
 ---
 
@@ -87,16 +122,18 @@ Represents a delivery attempt of one event to one subscription.
 ## 🔁 Retry Strategy
 
 * Exponential backoff
-* Configurable max attempts
+* Configurable max attempts (`DELIVERY_MAX_ATTEMPTS`, default 5)
 * Failed deliveries moved to DLQ
+
+Env vars: `WORKER_POLL_MS`, `BACKOFF_BASE_MS`, `DELIVERY_MAX_ATTEMPTS` (see `.env.example`)
 
 ---
 
 ## 📊 Observability
 
-* /health endpoint
-* Delivery logs stored in database
-* Metrics-ready architecture
+* `/health` endpoint
+* Delivery logs stored in database (`DeliveryLog` model)
+* Deliveries API for inspection (`/deliveries`, `/deliveries/dlq`, `/deliveries/:id`)
 
 ---
 
@@ -121,11 +158,34 @@ Represents a delivery attempt of one event to one subscription.
 
 ## 🧪 Local Development
 
-* Start PostgreSQL via Docker
-* Run Prisma migrations
-* Start the server
-* Send events via curl
-* Inspect database state
+```bash
+# 1. Start PostgreSQL
+docker compose up -d
+
+# 2. Copy env and run migrations
+cp .env.example .env
+npm run db:migrate
+
+# 3. Start API server (terminal 1)
+npm run dev
+
+# 4. Start worker (terminal 2)
+npm run worker
+
+# 5. Create subscription and send events
+curl -X POST http://localhost:3000/subscriptions \
+  -H "Content-Type: application/json" \
+  -d '{"endpoint": "https://webhook.site/your-id", "eventTypes": ["user.created"]}'
+
+curl -X POST http://localhost:3000/events \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: optional-unique-key" \
+  -d '{"type": "user.created", "payload": {"userId": "123"}}'
+
+# Inspect deliveries and DLQ
+curl http://localhost:3000/deliveries
+curl http://localhost:3000/deliveries/dlq
+```
 
 ---
 
